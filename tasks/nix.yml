@@ -1,11 +1,12 @@
-- name: Check if Nix is installed
-  stat: path=/nix/store
-  register: nix_installed
-
 - name: Get user's home directory
   command: echo $HOME
   register: user_home
   changed_when: false
+
+- name: Check if Nix is installed
+  stat: 
+    path: "{{ user_home.stdout }}/.nix-profile/etc/profile.d/nix.sh"
+  register: nix_installed
 
 - name: Create temporary directory in user's home
   file:
@@ -28,12 +29,11 @@
       set timeout -1
       spawn sh {{ user_home.stdout }}/.nix-install-temp/nix-install.sh --no-daemon --no-channel-add
       expect {
-        "Press ENTER to continue" { send "\r"; exp_continue }
-        "Would you like to proceed?" { send "y\r"; exp_continue }
-        "Would you like to add a line to your.*" { send "y\r"; exp_continue }
-        "Would you like Nix to automatically manage your shell profile?" { send "y\r"; exp_continue }
         "(Y/n)" { send "Y\r"; exp_continue }
         "(y/N)" { send "y\r"; exp_continue }
+        "Press ENTER to continue" { send "\r"; exp_continue }
+        "Would you like to proceed?" { send "y\r"; exp_continue }
+        "Would you like Nix to automatically manage your shell profile?" { send "y\r"; exp_continue }
         eof
       }
     dest: "{{ user_home.stdout }}/.nix-install-temp/nix-install-expect.exp"
@@ -43,7 +43,7 @@
 - name: Run Nix installation script with expect
   command: /usr/bin/expect {{ user_home.stdout }}/.nix-install-temp/nix-install-expect.exp
   args:
-    creates: /nix/store
+    creates: "{{ user_home.stdout }}/.nix-profile/etc/profile.d/nix.sh"
   register: nix_install
   when: not nix_installed.stat.exists
 
@@ -52,29 +52,4 @@
     path: "{{ user_home.stdout }}/.nix-install-temp"
     state: absent
   when: not nix_installed.stat.exists
-
-- name: Source Nix profile
-  shell: |
-    . {{ user_home.stdout }}/.nix-profile/etc/profile.d/nix.sh
-  args:
-    executable: /bin/bash
-  when: nix_install.changed
-
-- name: Add Nix channel
-  shell: |
-    . {{ user_home.stdout }}/.nix-profile/etc/profile.d/nix.sh
-    nix-channel --add {{ nix_channel }} nixpkgs
-    nix-channel --update
-  args:
-    executable: /bin/bash
-  when: nix_install.changed
-
-- name: Verify Nix installation
-  shell: |
-    . {{ user_home.stdout }}/.nix-profile/etc/profile.d/nix.sh
-    nix --version
-  args:
-    executable: /bin/bash
-  register: nix_version
-  changed_when: false
 

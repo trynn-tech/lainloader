@@ -21,4 +21,4 @@
       become: false
       block:
         - import_tasks: tasks/nix.yml
-        - import_tasks: tasks/ssh.yml
+        #- import_tasks: tasks/ssh.yml
