@@ -4,15 +4,10 @@
       - curl
       - sudo
       - base-devel
+      - expect
     update_cache: yes
     state: present
   when: is_arch
-
-- name: Allow user to run sudo without password
-  lineinfile:
-    path: /etc/sudoers
-    line: '{{ ansible_user_id }} ALL=(ALL) NOPASSWD: ALL'
-    validate: 'visudo -cf %s'
 
 - name: Warn if not running on a supported OS
   debug:

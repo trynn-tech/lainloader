@@ -2,12 +2,6 @@
   stat: path=/nix/store
   register: nix_installed
 
-- name: Install expect
-  pacman:
-    name: expect
-    state: present
-  when: is_arch and not nix_installed.stat.exists
-
 - name: Download Nix install script
   get_url:
     url: https://nixos.org/nix/install
@@ -20,11 +14,10 @@
     content: |
       #!/usr/bin/expect -f
       set timeout -1
-      spawn sh /tmp/nix-install.sh --daemon --no-channel-add
+      spawn sh /tmp/nix-install.sh --no-daemon --no-channel-add
       expect {
         "Press ENTER to continue" { send "\r"; exp_continue }
         "Would you like to proceed?" { send "y\r"; exp_continue }
-        "Do you want Nix to create a system-wide daemon?" { send "y\r"; exp_continue }
         "Would you like to add a line to your.*" { send "y\r"; exp_continue }
         "Would you like Nix to automatically manage your shell profile?" { send "y\r"; exp_continue }
         "(Y/n)" { send "Y\r"; exp_continue }
@@ -36,9 +29,33 @@
   when: not nix_installed.stat.exists
 
 - name: Run Nix installation script with expect
-  command: /tmp/nix-install-expect.exp
+  command: /usr/bin/expect /tmp/nix-install-expect.exp
   args:
     creates: /nix/store
   register: nix_install
   when: not nix_installed.stat.exists
 
+- name: Source Nix profile
+  shell: |
+    . $HOME/.nix-profile/etc/profile.d/nix.sh
+  args:
+    executable: /bin/bash
+  when: nix_install.changed
+
+- name: Add Nix channel
+  shell: |
+    . $HOME/.nix-profile/etc/profile.d/nix.sh
+    nix-channel --add {{ nix_channel }} nixpkgs
+    nix-channel --update
+  args:
+    executable: /bin/bash
+  when: nix_install.changed
+
+- name: Verify Nix installation
+  shell: |
+    . $HOME/.nix-profile/etc/profile.d/nix.sh
+    nix --version
+  args:
+    executable: /bin/bash
+  register: nix_version
+  changed_when: false

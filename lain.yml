@@ -5,15 +5,20 @@
     source_key: "./.ssh/id_rsa"
     dest_key: "{{ ansible_env.HOME }}/.ssh/id_rsa"
 
-  become: True
-  become_method: sudo
-
   pre_tasks:
     - name: Detect operating system
       set_fact:
         is_arch: "{{ ansible_distribution == 'Archlinux' }}"
 
   tasks:
-    - import_tasks: tasks/core.yml
-    - import_tasks: tasks/nix.yml
-    - import_tasks: tasks/ssh.yml
+    - name: Run tasks that require sudo
+      become: true
+      become_method: sudo
+      block:
+        - import_tasks: tasks/core.yml
+
+    - name: Run tasks as the user
+      become: false
+      block:
+        - import_tasks: tasks/nix.yml
+        - import_tasks: tasks/ssh.yml
