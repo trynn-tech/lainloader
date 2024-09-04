@@ -1,22 +1,21 @@
 - hosts: localhost
+  connection: local
   vars:
     nix_channel: https://nixos.org/channels/nixos-23.11
     source_key: "./.ssh/id_rsa"
 
-  pre_tasks:
+  tasks:
     - name: Detect operating system
       set_fact:
         is_arch: "{{ ansible_distribution == 'Archlinux' }}"
 
-  tasks:
-    - name: Run tasks that require sudo
+    - name: Run core tasks (require sudo)
       become: true
-      become_method: sudo
-      block:
-        - import_tasks: tasks/core.yml
+      import_tasks: tasks/core.yml
 
-    - name: Run tasks as the user
-      become: false
-      block:
-        - import_tasks: tasks/nix.yml
-        #- import_tasks: tasks/ssh.yml
+    - name: Install and configure Nix
+      import_tasks: tasks/nix.yml
+
+    # Uncomment the following line when ready to include SSH tasks
+    # - name: Configure SSH
+    #   import_tasks: tasks/ssh.yml

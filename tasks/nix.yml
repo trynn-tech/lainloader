@@ -1,55 +1,70 @@
-- name: Get user's home directory
-  command: echo $HOME
-  register: user_home
-  changed_when: false
-
 - name: Check if Nix is installed
-  stat: 
-    path: "{{ user_home.stdout }}/.nix-profile/etc/profile.d/nix.sh"
+  shell: command -v nix >/dev/null 2>&1
   register: nix_installed
+  changed_when: false
+  failed_when: false
 
-- name: Create temporary directory in user's home
+- name: Create temporary directory for Nix installation
   file:
-    path: "{{ user_home.stdout }}/.nix-install-temp"
+    path: "{{ ansible_env.HOME }}/.nix-install-temp"
     state: directory
     mode: '0755'
-  when: not nix_installed.stat.exists
+  when: nix_installed.rc != 0
 
 - name: Download Nix install script
   get_url:
     url: https://nixos.org/nix/install
-    dest: "{{ user_home.stdout }}/.nix-install-temp/nix-install.sh"
+    dest: "{{ ansible_env.HOME }}/.nix-install-temp/nix-install.sh"
     mode: '0755'
-  when: not nix_installed.stat.exists
+    force: yes
+    validate_certs: yes
+    use_proxy: yes
+    http_agent: "curl/7.64.1"
+  when: nix_installed.rc != 0
 
 - name: Create expect script for Nix installation
   copy:
     content: |
       #!/usr/bin/expect -f
       set timeout -1
-      spawn sh {{ user_home.stdout }}/.nix-install-temp/nix-install.sh --no-daemon --no-channel-add
+      spawn sh {{ ansible_env.HOME }}/.nix-install-temp/nix-install.sh --daemon
       expect {
-        "(Y/n)" { send "Y\r"; exp_continue }
-        "(y/N)" { send "y\r"; exp_continue }
-        "Press ENTER to continue" { send "\r"; exp_continue }
         "Would you like to proceed?" { send "y\r"; exp_continue }
-        "Would you like Nix to automatically manage your shell profile?" { send "y\r"; exp_continue }
+        "Press ENTER to continue" { send "\r"; exp_continue }
+        "Do you want Nix to create a new group named 'nixbld'?" { send "y\r"; exp_continue }
+        "Do you want to continue?" { send "y\r"; exp_continue }
         eof
       }
-    dest: "{{ user_home.stdout }}/.nix-install-temp/nix-install-expect.exp"
+    dest: "{{ ansible_env.HOME }}/.nix-install-temp/nix-install-expect.exp"
     mode: '0755'
-  when: not nix_installed.stat.exists
+  when: nix_installed.rc != 0
 
-- name: Run Nix installation script with expect
-  command: /usr/bin/expect {{ user_home.stdout }}/.nix-install-temp/nix-install-expect.exp
-  args:
-    creates: "{{ user_home.stdout }}/.nix-profile/etc/profile.d/nix.sh"
-  register: nix_install
-  when: not nix_installed.stat.exists
+- name: Install Nix
+  command: /usr/bin/expect {{ ansible_env.HOME }}/.nix-install-temp/nix-install-expect.exp
+  when: nix_installed.rc != 0
 
-- name: Clean up temporary installation files
+- name: Clean up Nix installation files
   file:
-    path: "{{ user_home.stdout }}/.nix-install-temp"
+    path: "{{ ansible_env.HOME }}/.nix-install-temp"
     state: absent
-  when: not nix_installed.stat.exists
+  when: nix_installed.rc != 0
 
+- name: Source Nix profile
+  shell: |
+    . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+  args:
+    executable: /bin/bash
+  when: nix_installed.rc != 0
+
+- name: Verify Nix installation
+  shell: |
+    . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+    nix --version
+  args:
+    executable: /bin/bash
+  register: nix_version
+  changed_when: false
+
+- name: Display Nix version
+  debug:
+    var: nix_version.stdout
