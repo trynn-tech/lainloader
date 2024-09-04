@@ -2,9 +2,14 @@
   stat: path=/nix/store
   register: nix_installed
 
+- name: Get user's home directory
+  command: echo $HOME
+  register: user_home
+  changed_when: false
+
 - name: Create temporary directory in user's home
   file:
-    path: "{{ ansible_env.HOME }}/.nix-install-temp"
+    path: "{{ user_home.stdout }}/.nix-install-temp"
     state: directory
     mode: '0755'
   when: not nix_installed.stat.exists
@@ -12,7 +17,7 @@
 - name: Download Nix install script
   get_url:
     url: https://nixos.org/nix/install
-    dest: "{{ ansible_env.HOME }}/.nix-install-temp/nix-install.sh"
+    dest: "{{ user_home.stdout }}/.nix-install-temp/nix-install.sh"
     mode: '0755'
   when: not nix_installed.stat.exists
 
@@ -21,7 +26,7 @@
     content: |
       #!/usr/bin/expect -f
       set timeout -1
-      spawn sh {{ ansible_env.HOME }}/.nix-install-temp/nix-install.sh --no-daemon --no-channel-add
+      spawn sh {{ user_home.stdout }}/.nix-install-temp/nix-install.sh --no-daemon --no-channel-add
       expect {
         "Press ENTER to continue" { send "\r"; exp_continue }
         "Would you like to proceed?" { send "y\r"; exp_continue }
@@ -31,12 +36,12 @@
         "(y/N)" { send "y\r"; exp_continue }
         eof
       }
-    dest: "{{ ansible_env.HOME }}/.nix-install-temp/nix-install-expect.exp"
+    dest: "{{ user_home.stdout }}/.nix-install-temp/nix-install-expect.exp"
     mode: '0755'
   when: not nix_installed.stat.exists
 
 - name: Run Nix installation script with expect
-  command: /usr/bin/expect {{ ansible_env.HOME }}/.nix-install-temp/nix-install-expect.exp
+  command: /usr/bin/expect {{ user_home.stdout }}/.nix-install-temp/nix-install-expect.exp
   args:
     creates: /nix/store
   register: nix_install
@@ -44,20 +49,20 @@
 
 - name: Clean up temporary installation files
   file:
-    path: "{{ ansible_env.HOME }}/.nix-install-temp"
+    path: "{{ user_home.stdout }}/.nix-install-temp"
     state: absent
   when: not nix_installed.stat.exists
 
 - name: Source Nix profile
   shell: |
-    . $HOME/.nix-profile/etc/profile.d/nix.sh
+    . {{ user_home.stdout }}/.nix-profile/etc/profile.d/nix.sh
   args:
     executable: /bin/bash
   when: nix_install.changed
 
 - name: Add Nix channel
   shell: |
-    . $HOME/.nix-profile/etc/profile.d/nix.sh
+    . {{ user_home.stdout }}/.nix-profile/etc/profile.d/nix.sh
     nix-channel --add {{ nix_channel }} nixpkgs
     nix-channel --update
   args:
@@ -66,13 +71,10 @@
 
 - name: Verify Nix installation
   shell: |
-    . $HOME/.nix-profile/etc/profile.d/nix.sh
+    . {{ user_home.stdout }}/.nix-profile/etc/profile.d/nix.sh
     nix --version
   args:
     executable: /bin/bash
   register: nix_version
   changed_when: false
 
-- name: Display Nix version
-  debug:
-    var: nix_version.stdout
