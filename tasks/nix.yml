@@ -23,6 +23,12 @@
       spawn sh /tmp/nix-install.sh --daemon --no-channel-add
       expect {
         "Press ENTER to continue" { send "\r"; exp_continue }
+        "Would you like to proceed?" { send "y\r"; exp_continue }
+        "Do you want Nix to create a system-wide daemon?" { send "y\r"; exp_continue }
+        "Would you like to add a line to your.*" { send "y\r"; exp_continue }
+        "Would you like Nix to automatically manage your shell profile?" { send "y\r"; exp_continue }
+        "(Y/n)" { send "Y\r"; exp_continue }
+        "(y/N)" { send "y\r"; exp_continue }
         eof
       }
     dest: /tmp/nix-install-expect.exp
@@ -36,22 +42,3 @@
   register: nix_install
   when: not nix_installed.stat.exists
 
-- name: Source Nix environment
-  shell: |
-    . /etc/profile.d/nix.sh
-  args:
-    executable: /bin/bash
-  when: nix_install.changed
-
-- name: Source Nix in bashrc
-  lineinfile:
-    path: "{{ ansible_env.HOME }}/.bashrc"
-    line: '. /etc/profile.d/nix.sh'
-  become_user: "{{ ansible_user_id }}"
-
-- name: Add and update Nix channel
-  shell: |
-    . /etc/profile.d/nix.sh
-    nix-channel --add {{ nix_channel }} nixpkgs
-    nix-channel --update
-  become_user: "{{ ansible_user_id }}"
