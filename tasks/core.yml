@@ -9,7 +9,3 @@
     state: present
   when: is_arch
 
-- name: Warn if not running on a supported OS
-  debug:
-    msg: "Warning: Some core setup tasks may not work on your system."
-  when: not is_arch
