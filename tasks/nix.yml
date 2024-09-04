@@ -1,0 +1,57 @@
+- name: Check if Nix is installed
+  stat: path=/nix/store
+  register: nix_installed
+
+- name: Install expect
+  pacman:
+    name: expect
+    state: present
+  when: is_arch and not nix_installed.stat.exists
+
+- name: Download Nix install script
+  get_url:
+    url: https://nixos.org/nix/install
+    dest: /tmp/nix-install.sh
+    mode: '0755'
+  when: not nix_installed.stat.exists
+
+- name: Create expect script for Nix installation
+  copy:
+    content: |
+      #!/usr/bin/expect -f
+      set timeout -1
+      spawn sh /tmp/nix-install.sh --daemon --no-channel-add
+      expect {
+        "Press ENTER to continue" { send "\r"; exp_continue }
+        eof
+      }
+    dest: /tmp/nix-install-expect.exp
+    mode: '0755'
+  when: not nix_installed.stat.exists
+
+- name: Run Nix installation script with expect
+  command: /tmp/nix-install-expect.exp
+  args:
+    creates: /nix/store
+  register: nix_install
+  when: not nix_installed.stat.exists
+
+- name: Source Nix environment
+  shell: |
+    . /etc/profile.d/nix.sh
+  args:
+    executable: /bin/bash
+  when: nix_install.changed
+
+- name: Source Nix in bashrc
+  lineinfile:
+    path: "{{ ansible_env.HOME }}/.bashrc"
+    line: '. /etc/profile.d/nix.sh'
+  become_user: "{{ ansible_user_id }}"
+
+- name: Add and update Nix channel
+  shell: |
+    . /etc/profile.d/nix.sh
+    nix-channel --add {{ nix_channel }} nixpkgs
+    nix-channel --update
+  become_user: "{{ ansible_user_id }}"

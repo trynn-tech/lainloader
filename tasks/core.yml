@@ -1,0 +1,20 @@
+- name: Install essential packages (Arch)
+  pacman:
+    name: 
+      - curl
+      - sudo
+      - base-devel
+    update_cache: yes
+    state: present
+  when: is_arch
+
+- name: Allow user to run sudo without password
+  lineinfile:
+    path: /etc/sudoers
+    line: '{{ ansible_user_id }} ALL=(ALL) NOPASSWD: ALL'
+    validate: 'visudo -cf %s'
+
+- name: Warn if not running on a supported OS
+  debug:
+    msg: "Warning: Some core setup tasks may not work on your system."
+  when: not is_arch
