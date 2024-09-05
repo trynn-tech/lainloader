@@ -80,11 +80,6 @@
   ignore_errors: yes
   when: nix_installed.rc != 0
 
-- name: Reset shell environment
-  become: yes
-  become_user: trynn
-  command: /bin/bash -l
-
 - name: Clean up Nix installation files
   file:
     path: "{{ ansible_env.HOME }}/.nix-install-temp"
