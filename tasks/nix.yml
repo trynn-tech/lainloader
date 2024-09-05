@@ -26,12 +26,29 @@
     content: |
       #!/usr/bin/expect -f
       set timeout -1
+      set password [lindex $argv 0]
       spawn sh {{ ansible_env.HOME }}/.nix-install-temp/nix-install.sh --daemon
       expect {
-        "Would you like to proceed?" { send "y\r"; exp_continue }
-        "Press ENTER to continue" { send "\r"; exp_continue }
-        "Do you want Nix to create a new group named 'nixbld'?" { send "y\r"; exp_continue }
-        "Do you want to continue?" { send "y\r"; exp_continue }
+        "Would you like to see a more detailed list of what I will do? \\\[y/n\\\]" {
+          send "n\r"
+          exp_continue
+        }
+        "Ready to continue?\\\[y/n\\\]" {
+          send "y\r"
+          exp_continue
+        }
+        "Can I use sudo?\\\[y/n\\\]" {
+          send "y\r"
+          exp_continue
+        }
+        "\\\[sudo\\\] password for trynn:" {
+          send "$password\r"
+          exp_continue
+        }
+        "press enter/return to acknowledge" {
+          send "\r"
+          exp_continue
+        }
         eof
       }
     dest: "{{ ansible_env.HOME }}/.nix-install-temp/nix-install-expect.exp"
@@ -39,14 +56,24 @@
   when: nix_installed.rc != 0
 
 - name: Install Nix
-  command: /usr/bin/expect {{ ansible_env.HOME }}/.nix-install-temp/nix-install-expect.exp
+  expect:
+    command: "{{ ansible_env.HOME }}/.nix-install-temp/nix-install-expect.exp {{ ansible_become_pass }}"
+    timeout: 300
   become: yes
+  no_log: true
   when: nix_installed.rc != 0
 
 - name: Clean up Nix installation files
   file:
     path: "{{ ansible_env.HOME }}/.nix-install-temp"
     state: absent
+  when: nix_installed.rc != 0
+
+- name: Reload shell environment
+  shell: |
+    exec bash
+  args:
+    executable: /bin/bash
   when: nix_installed.rc != 0
 
 - name: Source Nix profile
