@@ -19,6 +19,14 @@
     - name: Configure SSH
       import_tasks: tasks/ssh.yml
 
+    - name: Remove passwordless sudo access for user trynn
+      become: yes
+      lineinfile:
+        path: /etc/sudoers
+        state: absent
+        regexp: '^trynn ALL=\(ALL\) NOPASSWD: ALL'
+        validate: 'visudo -cf %s'
+
     - name: Provide next steps for Nix usage
       debug:
         msg: |
