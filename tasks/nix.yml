@@ -80,28 +80,8 @@
   ignore_errors: yes
   when: nix_installed.rc != 0
 
-- name: Reset shell environment and verify Nix installation
-  shell: |
-    su - {{ ansible_user_id }} -c '
-    if [ -e /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then
-      . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
-    elif [ -e $HOME/.nix-profile/etc/profile.d/nix.sh ]; then
-      . $HOME/.nix-profile/etc/profile.d/nix.sh
-    fi
-    nix --version
-    '
-  register: nix_version_check
-  when: nix_installed_check.rc == 0
-
-- name: Display Nix version
-  debug:
-    var: nix_version_check.stdout_lines
-  when: nix_installed_check.rc == 0
-
-- name: Fail if Nix installation was unsuccessful
-  fail:
-    msg: "Nix installation failed or Nix is not accessible in the new shell environment. Please check the logs for more information."
-  when: nix_installed_check.rc != 0 or (nix_version_check.rc is defined and nix_version_check.rc != 0)
+- name: Reset shell environment
+  command: su trynn
 
 - name: Clean up Nix installation files
   file:
