@@ -25,30 +25,41 @@
   copy:
     content: |
       #!/usr/bin/expect -f
+      log_file {{ ansible_env.HOME }}/.nix-install-temp/nix-install.log
       set timeout -1
       spawn sh {{ ansible_env.HOME }}/.nix-install-temp/nix-install.sh --daemon
       expect {
         "Would you like to see a more detailed list of what I will do? \\\[y/n\\\]" {
+          send_log "\nReceived: Would you like to see a more detailed list of what I will do? \[y/n\]\n"
           send "n\r"
+          send_log "Sent: n\n"
           exp_continue
         }
         "Ready to continue?\\\[y/n\\\]" {
+          send_log "\nReceived: Ready to continue?\[y/n\]\n"
           send "y\r"
+          send_log "Sent: y\n"
           exp_continue
         }
         "Can I use sudo?\\\[y/n\\\]" {
+          send_log "\nReceived: Can I use sudo?\[y/n\]\n"
           send "y\r"
-          exp_continue
-        }
-        "Ready to continue?\\\[y/n\\\]" {
-          send "y\r"
+          send_log "Sent: y\n"
           exp_continue
         }
         "press enter/return to acknowledge" {
+          send_log "\nReceived: press enter/return to acknowledge\n"
           send "\r"
+          send_log "Sent: <enter>\n"
           exp_continue
         }
-        eof
+        timeout {
+          send_log "\nTimeout occurred\n"
+          exit 1
+        }
+        eof {
+          send_log "\nEOF encountered\n"
+        }
       }
     dest: "{{ ansible_env.HOME }}/.nix-install-temp/nix-install-expect.exp"
     mode: '0755'
@@ -69,6 +80,16 @@
 - name: Display Nix installation output
   debug:
     var: nix_install_result.stdout_lines
+  when: nix_installed.rc != 0
+
+- name: Display Nix installation log
+  command: cat {{ ansible_env.HOME }}/.nix-install-temp/nix-install.log
+  register: nix_install_log
+  when: nix_installed.rc != 0
+
+- name: Show Nix installation log
+  debug:
+    var: nix_install_log.stdout_lines
   when: nix_installed.rc != 0
 
 - name: Clean up Nix installation files
