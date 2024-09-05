@@ -41,7 +41,7 @@
           exp_continue
         }
         "\\\[sudo\\\] password for *:" {
-          send "{{ ansible_become_password }}\r"
+          send "$env(SUDO_PASSWORD)\r"
           exp_continue
         }
         "press enter/return to acknowledge" {
@@ -55,9 +55,16 @@
   when: nix_installed.rc != 0
 
 - name: Install Nix
+  environment:
+    SUDO_PASSWORD: "{{ ansible_become_pass }}"
   command: /usr/bin/expect {{ ansible_env.HOME }}/.nix-install-temp/nix-install-expect.exp
   become: yes
   register: nix_install_result
+  when: nix_installed.rc != 0
+
+- name: Display Nix installation output
+  debug:
+    var: nix_install_result.stdout_lines
   when: nix_installed.rc != 0
 
 - name: Clean up Nix installation files
