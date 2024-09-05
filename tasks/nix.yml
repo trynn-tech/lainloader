@@ -52,7 +52,6 @@
 
 - name: Install Nix
   command: /usr/bin/expect {{ ansible_env.HOME }}/.nix-install-temp/nix-install-expect.exp
-  become: yes
   register: nix_install_result
   when: nix_installed.rc != 0
 
