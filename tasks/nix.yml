@@ -27,27 +27,31 @@
       #!/usr/bin/expect -f
       log_file {{ ansible_env.HOME }}/.nix-install-temp/nix-install.log
       set timeout -1
+      
+      # Disable color output interpretation
+      set env(TERM) "dumb"
+      
       spawn sh {{ ansible_env.HOME }}/.nix-install-temp/nix-install.sh --daemon
       expect {
-        "Would you like to see a more detailed list of what I will do? \\\[y/n\\\]" {
+        -re ".*Would you like to see a more detailed list of what I will do.*\\\[y/n\\\]" {
           send_log "\nReceived: Would you like to see a more detailed list of what I will do? \[y/n\]\n"
           send "n\r"
           send_log "Sent: n\n"
           exp_continue
         }
-        "Ready to continue?\\\[y/n\\\]" {
+        -re ".*Ready to continue.*\\\[y/n\\\]" {
           send_log "\nReceived: Ready to continue?\[y/n\]\n"
           send "y\r"
           send_log "Sent: y\n"
           exp_continue
         }
-        "Can I use sudo?\\\[y/n\\\]" {
+        -re ".*Can I use sudo.*\\\[y/n\\\]" {
           send_log "\nReceived: Can I use sudo?\[y/n\]\n"
           send "y\r"
           send_log "Sent: y\n"
           exp_continue
         }
-        "press enter/return to acknowledge" {
+        -re ".*press enter/return to acknowledge.*" {
           send_log "\nReceived: press enter/return to acknowledge\n"
           send "\r"
           send_log "Sent: <enter>\n"
