@@ -12,9 +12,7 @@
   when: nix_installed.rc != 0
 
 - name: Download Nix install script
-  shell: >
-    curl --proto '=https' --tlsv1.2 -sSfL https://nixos.org/nix/install 
-    -o {{ ansible_env.HOME }}/.nix-install-temp/nix-install.sh
+  shell: curl --proto '=https' --tlsv1.2 -sSfL https://nixos.org/nix/install -o {{ ansible_env.HOME }}/.nix-install-temp/nix-install.sh
   args:
     warn: false
   when: nix_installed.rc != 0
