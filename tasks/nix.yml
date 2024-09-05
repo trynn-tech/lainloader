@@ -69,10 +69,15 @@
   when: nix_installed.rc != 0
 
 - name: Install Nix
-  command: /usr/bin/expect {{ ansible_env.HOME }}/.nix-install-temp/nix-install-expect.exp
+  shell: |
+    /usr/bin/expect {{ ansible_env.HOME }}/.nix-install-temp/nix-install-expect.exp
+    exit_code=$?
+    if [ $exit_code -ne 0 ]; then
+      echo "Expect script failed with exit code $exit_code"
+      exit $exit_code
+    fi
   register: nix_install_result
-  async: 900
-  poll: 5
+  ignore_errors: yes
   when: nix_installed.rc != 0
 
 - name: Reload shell environment
