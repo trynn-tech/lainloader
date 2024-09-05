@@ -59,8 +59,10 @@
   expect:
     command: "{{ ansible_env.HOME }}/.nix-install-temp/nix-install-expect.exp {{ ansible_become_pass }}"
     timeout: 300
+    echo: yes
   become: yes
-  no_log: true
+  register: nix_install_result
+  no_log: false
   when: nix_installed.rc != 0
 
 - name: Clean up Nix installation files
