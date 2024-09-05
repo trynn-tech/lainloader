@@ -12,14 +12,17 @@
   when: nix_installed.rc != 0
 
 - name: Download Nix install script
-  get_url:
-    url: https://nixos.org/nix/install
-    dest: "{{ ansible_env.HOME }}/.nix-install-temp/nix-install.sh"
+  shell: >
+    curl --proto '=https' --tlsv1.2 -sSfL https://nixos.org/nix/install 
+    -o {{ ansible_env.HOME }}/.nix-install-temp/nix-install.sh
+  args:
+    warn: false
+  when: nix_installed.rc != 0
+
+- name: Set execute permission on Nix install script
+  file:
+    path: "{{ ansible_env.HOME }}/.nix-install-temp/nix-install.sh"
     mode: '0755'
-    force: yes
-    validate_certs: yes
-    use_proxy: yes
-    http_agent: "curl/7.64.1"
   when: nix_installed.rc != 0
 
 - name: Create expect script for Nix installation
@@ -41,6 +44,7 @@
 
 - name: Install Nix
   command: /usr/bin/expect {{ ansible_env.HOME }}/.nix-install-temp/nix-install-expect.exp
+  become: yes
   when: nix_installed.rc != 0
 
 - name: Clean up Nix installation files
