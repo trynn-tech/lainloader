@@ -40,6 +40,10 @@
           send "y\r"
           exp_continue
         }
+        "Ready to continue?\\\[y/n\\\]" {
+          send "y\r"
+          exp_continue
+        }
         "press enter/return to acknowledge" {
           send "\r"
           exp_continue
@@ -53,6 +57,13 @@
 - name: Install Nix
   command: /usr/bin/expect {{ ansible_env.HOME }}/.nix-install-temp/nix-install-expect.exp
   register: nix_install_result
+  when: nix_installed.rc != 0
+
+- name: Reload shell environment
+  shell: |
+    exec bash
+  args:
+    executable: /bin/bash
   when: nix_installed.rc != 0
 
 - name: Display Nix installation output
