@@ -45,9 +45,9 @@
           send_log "Sent: y\n"
           exp_continue
         }
-        -re ".*press enter/return to acknowledge.*" {
+        -re ".*return to acknowledge.*" {
           send_log "\nReceived: press enter/return to acknowledge\n"
-          send "\r"
+          send "\r\n"
           send_log "Sent: <enter>\n"
           exp_continue
         }
