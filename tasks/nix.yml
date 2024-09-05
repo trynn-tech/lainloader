@@ -26,7 +26,6 @@
     content: |
       #!/usr/bin/expect -f
       set timeout -1
-      set password [lindex $argv 0]
       spawn sh {{ ansible_env.HOME }}/.nix-install-temp/nix-install.sh --daemon
       expect {
         "Would you like to see a more detailed list of what I will do? \\\[y/n\\\]" {
@@ -41,8 +40,8 @@
           send "y\r"
           exp_continue
         }
-        "\\\[sudo\\\] password for trynn:" {
-          send "$password\r"
+        "\\\[sudo\\\] password for *:" {
+          send "{{ ansible_become_password }}\r"
           exp_continue
         }
         "press enter/return to acknowledge" {
@@ -56,13 +55,9 @@
   when: nix_installed.rc != 0
 
 - name: Install Nix
-  expect:
-    command: "{{ ansible_env.HOME }}/.nix-install-temp/nix-install-expect.exp {{ ansible_become_pass }}"
-    timeout: 300
-    echo: yes
+  command: /usr/bin/expect {{ ansible_env.HOME }}/.nix-install-temp/nix-install-expect.exp
   become: yes
   register: nix_install_result
-  no_log: false
   when: nix_installed.rc != 0
 
 - name: Clean up Nix installation files
