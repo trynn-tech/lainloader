@@ -84,11 +84,9 @@
   become: yes
   become_user: trynn
   command: /bin/bash -l
-  when: nix_installed_check.rc == 0
 
 - name: Clean up Nix installation files
   file:
     path: "{{ ansible_env.HOME }}/.nix-install-temp"
     state: absent
-  when: nix_installed.rc != 0
 
