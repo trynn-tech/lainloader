@@ -18,3 +18,14 @@
 
     - name: Configure SSH
       import_tasks: tasks/ssh.yml
+
+    - name: Provide next steps for Nix usage
+      debug:
+        msg: |
+            Nix has been installed, but you need to start a new shell session for it to take effect.
+            Please do one of the following:
+            1. Log out and log back in
+            2. Start a new terminal session
+            3. Run 'exec $SHELL' in your current terminal
+            After that, you should be able to use Nix commands.
+            Next step 'git clone git@github.com:trynn-tech/dotfiles.git'

@@ -31,8 +31,3 @@
     size: 4096
     force: no
   when: not ssh_key_stat.stat.exists
-
-- name: Install OpenSSH using Nix
-  shell: nix-env -iA nixpkgs.openssh
-  when: is_arch
-

@@ -3,6 +3,7 @@
     name: 
       - curl
       - sudo
+      - openssh
       - base-devel
       - expect
     update_cache: yes
