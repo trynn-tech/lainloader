@@ -15,18 +15,12 @@
   command: curl --proto '=https' --tlsv1.2 -sSfL https://nixos.org/nix/install -o {{ ansible_env.HOME }}/.nix-install-temp/nix-install.sh
   when: nix_installed.rc != 0
 
-- name: Set execute permission on Nix install script
-  file:
-    path: "{{ ansible_env.HOME }}/.nix-install-temp/nix-install.sh"
-    mode: '0755'
-  when: nix_installed.rc != 0
-
 - name: Create expect script for Nix installation
   copy:
     content: |
       #!/usr/bin/expect -f
       log_file {{ ansible_env.HOME }}/.nix-install-temp/nix-install.log
-      set timeout -1
+      set timeout 600
       
       # Disable color output interpretation
       set env(TERM) "dumb"
@@ -57,12 +51,17 @@
           send_log "Sent: <enter>\n"
           exp_continue
         }
+        -re ".*installation finished.*" {
+          send_log "\nInstallation finished\n"
+          exit 0
+        }
         timeout {
           send_log "\nTimeout occurred\n"
           exit 1
         }
         eof {
           send_log "\nEOF encountered\n"
+          exit 0
         }
       }
     dest: "{{ ansible_env.HOME }}/.nix-install-temp/nix-install-expect.exp"
@@ -72,6 +71,8 @@
 - name: Install Nix
   command: /usr/bin/expect {{ ansible_env.HOME }}/.nix-install-temp/nix-install-expect.exp
   register: nix_install_result
+  async: 900
+  poll: 5
   when: nix_installed.rc != 0
 
 - name: Reload shell environment
